@@ -137,8 +137,63 @@ impl<'a> Write for FileOrStdoutLock<'a> {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+    use super::*;
+    use std::fs;
+    use std::io;
+    use tempdir::TempDir;
+
+    fn with_temp_dir<F>(f: F) -> Result<(), io::Error>
+    where
+        F: FnOnce(&TempDir) -> Result<(), io::Error>,
+    {
+        let tmp_dir = TempDir::new("test_dir")?;
+
+        f(&tmp_dir)?;
+
+        tmp_dir.close()?;
+        Ok(())
     }
+
+    #[test]
+    fn read_file() -> Result<(), io::Error> {
+        with_temp_dir(|tmp_dir| {
+            let expected_content = "Test read file content";
+            let test_file_path = tmp_dir.path().join("test_file.txt");
+            let mut test_file = File::create(test_file_path.clone())?;
+            write!(test_file, "{}", expected_content)?;
+            drop(test_file);
+
+            let mut actual_content = String::new();
+
+            FileOrStdin::from_path(&test_file_path)
+                .unwrap()
+                .lock()
+                .read_to_string(&mut actual_content)?;
+
+            assert_eq!(actual_content, expected_content);
+
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn write_file() -> Result<(), io::Error> {
+        with_temp_dir(|tmp_dir| {
+            let expected_content = "Test write file content";
+            let test_file_path = tmp_dir.path().join("test_write_file.txt");
+
+            FileOrStdout::from_path(&test_file_path)
+                .unwrap()
+                .lock()
+                .write(expected_content.as_bytes())?;
+
+            let actual_content = fs::read_to_string(test_file_path)?;
+
+            assert_eq!(actual_content, expected_content);
+
+            Ok(())
+        })
+    }
+
+    // TODO: stdin/stdout
 }
