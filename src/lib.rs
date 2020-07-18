@@ -36,6 +36,16 @@ impl FileOrStdin {
             Self::Stdin(stdin) => FileOrStdinLock::StdinLock(stdin.lock()),
         }
     }
+
+    /// Read the entire contents into a string.
+    ///
+    /// This is a convenience function similar to
+    /// [`std::fs::read_to_string`](https://doc.rust-lang.org/std/fs/fn.read_to_string.html).
+    pub fn read_to_string(path: &PathBuf) -> io::Result<String> {
+        let mut string = String::new();
+        Self::from_path(path)?.lock().read_to_string(&mut string)?;
+        Ok(string)
+    }
 }
 
 impl From<File> for FileOrStdin {
@@ -171,6 +181,11 @@ mod tests {
                 .read_to_string(&mut actual_content)?;
 
             assert_eq!(actual_content, expected_content);
+
+            assert_eq!(
+                FileOrStdin::read_to_string(&test_file_path).unwrap(),
+                expected_content
+            );
 
             Ok(())
         })
