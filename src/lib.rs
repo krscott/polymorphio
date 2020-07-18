@@ -115,6 +115,15 @@ impl FileOrStdout {
             Self::Stdout(stdout) => FileOrStdoutLock::StdoutLock(stdout.lock()),
         }
     }
+
+    /// Write the entire contents of a buffer to a path.
+    ///
+    /// This is a convenience function that is the complementary to `FileOrStdin::read_to_string`.
+    pub fn write_all(path: &PathBuf, buf: &[u8]) -> io::Result<()> {
+        let mut writer = Self::from_path(path)?;
+        let mut write_buf = writer.lock();
+        write_buf.write_all(buf)
+    }
 }
 
 impl From<File> for FileOrStdout {
@@ -174,12 +183,10 @@ mod tests {
             drop(test_file);
 
             let mut actual_content = String::new();
-
             FileOrStdin::from_path(&test_file_path)
                 .unwrap()
                 .lock()
                 .read_to_string(&mut actual_content)?;
-
             assert_eq!(actual_content, expected_content);
 
             assert_eq!(
@@ -195,15 +202,18 @@ mod tests {
     fn write_file() -> Result<(), io::Error> {
         with_temp_dir(|tmp_dir| {
             let expected_content = "Test write file content";
-            let test_file_path = tmp_dir.path().join("test_write_file.txt");
 
+            let test_file_path = tmp_dir.path().join("test_write_file.txt");
             FileOrStdout::from_path(&test_file_path)
                 .unwrap()
                 .lock()
                 .write(expected_content.as_bytes())?;
-
             let actual_content = fs::read_to_string(test_file_path)?;
+            assert_eq!(actual_content, expected_content);
 
+            let test_file_path2 = tmp_dir.path().join("test_write_file2.txt");
+            FileOrStdout::write_all(&test_file_path2, expected_content.as_bytes())?;
+            let actual_content = fs::read_to_string(test_file_path2)?;
             assert_eq!(actual_content, expected_content);
 
             Ok(())
