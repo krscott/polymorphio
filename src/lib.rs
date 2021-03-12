@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{self, BufRead, BufReader, BufWriter, Read, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 const STDIO_FILENAME: &str = "-";
@@ -17,8 +17,8 @@ pub enum FileOrStdinLock<'a> {
 }
 
 impl FileOrStdin {
-    pub fn from_path(path: &PathBuf) -> io::Result<Self> {
-        Ok(if path.to_string_lossy() == STDIO_FILENAME {
+    pub fn from_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+        Ok(if path.as_ref().to_string_lossy() == STDIO_FILENAME {
             io::stdin().into()
         } else {
             File::open(path)?.into()
