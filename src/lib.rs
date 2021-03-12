@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{self, BufRead, BufReader, BufWriter, Read, Write},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 const STDIO_FILENAME: &str = "-";
@@ -41,7 +41,7 @@ impl FileOrStdin {
     ///
     /// This is a convenience function similar to
     /// [`std::fs::read_to_string`](https://doc.rust-lang.org/std/fs/fn.read_to_string.html).
-    pub fn read_to_string(path: &PathBuf) -> io::Result<String> {
+    pub fn read_to_string<P: AsRef<Path>>(path: P) -> io::Result<String> {
         let mut string = String::new();
         Self::from_path(path)?.lock().read_to_string(&mut string)?;
         Ok(string)
@@ -96,8 +96,8 @@ pub enum FileOrStdoutLock<'a> {
 }
 
 impl FileOrStdout {
-    pub fn from_path(path: &PathBuf) -> io::Result<Self> {
-        Ok(if path.to_string_lossy() == STDIO_FILENAME {
+    pub fn from_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+        Ok(if path.as_ref().to_string_lossy() == STDIO_FILENAME {
             io::stdout().into()
         } else {
             File::create(path)?.into()
@@ -119,7 +119,7 @@ impl FileOrStdout {
     /// Write the entire contents of a buffer to a path.
     ///
     /// This is a convenience function that is the complementary to `FileOrStdin::read_to_string`.
-    pub fn write_all(path: &PathBuf, buf: &[u8]) -> io::Result<()> {
+    pub fn write_all<P: AsRef<Path>>(path: P, buf: &[u8]) -> io::Result<()> {
         let mut writer = Self::from_path(path)?;
         let mut write_buf = writer.lock();
         write_buf.write_all(buf)
