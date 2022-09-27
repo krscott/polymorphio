@@ -159,13 +159,13 @@ mod tests {
     use super::*;
     use std::fs;
     use std::io;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     fn with_temp_dir<F>(f: F) -> Result<(), io::Error>
     where
         F: FnOnce(&TempDir) -> Result<(), io::Error>,
     {
-        let tmp_dir = TempDir::new("test_dir")?;
+        let tmp_dir = TempDir::new()?;
 
         f(&tmp_dir)?;
 
